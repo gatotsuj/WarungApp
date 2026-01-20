@@ -16,4 +16,13 @@ class EditTransaction extends EditRecord
             DeleteAction::make(),
         ];
     }
+
+    protected function afterSave(): void
+    {
+        $transaction = $this->record;
+
+        $transaction->updateQuietly([
+            'total_amount' => $transaction->items()->sum('subtotal'),
+        ]);
+    }
 }

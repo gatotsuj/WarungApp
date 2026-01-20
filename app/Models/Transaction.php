@@ -24,4 +24,13 @@ class Transaction extends Model
     {
         return $this->hasMany(TransactionItem::class);
     }
+
+    protected static function booted()
+    {
+        static::saved(function ($transaction) {
+            $transaction->updateQuietly([
+                'total_amount' => $transaction->items()->sum('subtotal'),
+            ]);
+        });
+    }
 }

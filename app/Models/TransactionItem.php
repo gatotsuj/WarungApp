@@ -29,4 +29,27 @@ class TransactionItem extends Model
     {
         return $this->belongsTo(Product::class);
     }
+
+    protected static function booted()
+    {
+        static::saved(function ($item) {
+            $transaction = $item->transaction;
+
+            if ($transaction) {
+                $transaction->updateQuietly([
+                    'total_amount' => $transaction->items()->sum('subtotal'),
+                ]);
+            }
+        });
+
+        static::deleted(function ($item) {
+            $transaction = $item->transaction;
+
+            if ($transaction) {
+                $transaction->updateQuietly([
+                    'total_amount' => $transaction->items()->sum('subtotal'),
+                ]);
+            }
+        });
+    }
 }

@@ -14,11 +14,31 @@ return new class extends Migration
         Schema::create('transactions', function (Blueprint $table) {
             $table->id();
             $table->string('code')->unique();
+            $table->foreignId('customer_id')->nullable()->constrained()->nullOnDelete();
+
+            // Simpan snapshot data customer saat transaksi (untuk histori)
             $table->string('customer_name');
             $table->string('customer_phone')->nullable();
+            $table->string('customer_email')->nullable();
+            $table->text('customer_address')->nullable();
+
+            // Informasi Faktur
+            $table->date('transaction_date')->default(now());
+            $table->date('due_date')->nullable(); // Untuk kredit
+
+            // Perhitungan
+            $table->decimal('subtotal', 12, 2)->default(0);
+            $table->decimal('discount', 12, 2)->default(0); // Diskon
+            $table->decimal('tax', 12, 2)->default(0); // PPN/Pajak
             $table->decimal('total_amount', 12, 2)->default(0);
-            $table->enum('status', ['pending', 'processing', 'completed', 'cancelled'])
-                ->default('pending');
+
+            // Status
+            $table->enum('status', ['draft', 'pending', 'processing', 'completed', 'cancelled'])
+                ->default('draft');
+            $table->enum('payment_status', ['unpaid', 'partial', 'paid'])->default('unpaid');
+            $table->enum('payment_method', ['cash', 'transfer', 'card', 'ewallet', 'credit'])
+                ->nullable();
+
             $table->text('notes')->nullable();
             $table->timestamps();
         });

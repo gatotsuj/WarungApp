@@ -46,21 +46,65 @@ class TransactionForm
                     ])->columns(2),
                 Section::make('Info Customer')
                     ->schema([
+                        Select::make('customer_id')
+                            ->label('Customer')
+                            ->relationship(
+                                'customer',
+                                'name',
+                                fn ($query) => $query->where('is_active', true)
+                            )
+                            ->searchable()
+                            ->preload()
+                            ->required()
+                            ->reactive()
+                            ->afterStateUpdated(function ($state, callable $set) {
+                                $customer = \App\Models\Customer::find($state);
+
+                                if (! $customer) {
+                                    return;
+                                }
+
+                                $set('customer_name', $customer->name);
+                                $set('customer_phone', $customer->phone);
+                                $set('customer_email', $customer->email);
+
+                                $alamat = collect([
+                                    $customer->address,
+                                    $customer->city,
+                                    $customer->province,
+                                    $customer->postal_code,
+                                ])->filter()->implode(', ');
+
+                                $set('customer_alamat', $alamat);
+                            }),
+
                         TextInput::make('customer_name')
                             ->label('Nama Customer')
-                            ->required()
-                            ->maxLength(255),
+                            ->readOnly()
+                            ->dehydrated(),
 
                         TextInput::make('customer_phone')
                             ->label('No. HP')
-                            ->tel()
-                            ->maxLength(20),
+                            ->readOnly()
+                            ->dehydrated(),
+
+                        TextInput::make('customer_email')
+                            ->label('Email')
+                            ->readOnly()
+                            ->dehydrated(),
+
+                        TextInput::make('customer_alamat')
+                            ->label('Alamat')
+                            ->readOnly()
+                            ->columnSpanFull()
+                            ->dehydrated(),
 
                         Textarea::make('notes')
                             ->label('Catatan')
                             ->rows(2)
                             ->columnSpanFull(),
-                    ])->columns(2),
+                    ])
+                    ->columns(2),
 
                 Section::make('Produk')
                     ->schema([

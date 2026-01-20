@@ -38,11 +38,13 @@ class StatsOverview extends StatsOverviewWidget
             Stat::make('Transaksi Hari Ini', Transaction::whereDate('created_at', today())->count())
                 ->description(Transaction::where('status', 'pending')->count().' pending')
                 ->descriptionIcon('heroicon-m-shopping-cart')
+                ->chart([7, 2, 10, 3, 15, 4, 17])
                 ->color('warning'),
 
             Stat::make('Pendapatan Hari Ini', 'Rp '.number_format($todayRevenue, 0, ',', '.'))
                 ->description($revenueChange >= 0 ? "+{$revenueChange}%" : "{$revenueChange}%")
                 ->descriptionIcon($revenueChange >= 0 ? 'heroicon-m-arrow-trending-up' : 'heroicon-m-arrow-trending-down')
+                ->chart([7, 2, 10, 3, 15, 4, 17])
                 ->color($revenueChange >= 0 ? 'success' : 'danger'),
         ];
     }

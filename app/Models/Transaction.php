@@ -71,4 +71,10 @@ class Transaction extends Model
             ]);
         });
     }
+
+    public function journalEntry()
+    {
+        return $this->hasOne(JournalEntry::class, 'reference_id')
+            ->where('reference_type', self::class);
+    }
 }

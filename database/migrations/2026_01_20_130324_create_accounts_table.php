@@ -13,24 +13,56 @@ return new class extends Migration
     {
         Schema::create('accounts', function (Blueprint $table) {
             $table->id();
+            // Kode akun (misal: 1101, 4101, 5101)
             $table->string('code')->unique();
+
+            // Nama akun
             $table->string('name');
-            $table->enum('type', ['asset', 'liability', 'equity', 'revenue', 'cogs', 'expense']);
-            $table->enum('subtype', [
-                'current_asset', 'fixed_asset', 'inventory',
-                'current_liability', 'long_term_liability',
-                'capital', 'retained_earnings',
-                'sales_revenue', 'other_revenue',
-                'purchase', 'freight_in',
-                'operating_expense', 'other_expense',
-            ])->nullable();
-            $table->foreignId('parent_id')->nullable()->constrained('accounts')->nullOnDelete();
+
+            /**
+             * Tipe utama akun (PSAK)
+             * asset | liability | equity | revenue | expense
+             */
+            $table->string('type');
+
+            /**
+             * Kategori / sub tipe (fleksibel)
+             * contoh:
+             * cash, bank, accounts_receivable, inventory,
+             * accounts_payable, tax_payable,
+             * sales_revenue, sales_return,
+             * cogs, operating_expense
+             */
+            $table->string('category')->nullable();
+
+            // Hirarki akun
+            $table->foreignId('parent_id')
+                ->nullable()
+                ->constrained('accounts')
+                ->nullOnDelete();
+
+            // Saldo awal
             $table->decimal('opening_balance', 15, 2)->default(0);
+
+            /**
+             * Saldo normal
+             * debit | credit
+             */
             $table->enum('normal_balance', ['debit', 'credit']);
-            $table->boolean('is_active')->default(true);
+
+            // Akun kontra (akumulasi penyusutan, retur penjualan, dll)
+            $table->boolean('is_contra')->default(false);
+
+            // Penanda akun kas & bank
             $table->boolean('is_cash_account')->default(false);
             $table->boolean('is_bank_account')->default(false);
+
+            // Status
+            $table->boolean('is_active')->default(true);
+
+            // Keterangan
             $table->text('description')->nullable();
+
             $table->timestamps();
         });
     }

@@ -95,8 +95,7 @@ class TransactionsTable
                     ->label('Faktur')
                     ->icon('heroicon-o-document-text')
                     ->color('success')
-                    ->url(fn ($record) => route('transactions.invoice', $record))
-                    ->openUrlInNewTab(),
+                    ->url(fn ($record) => route('transactions.invoice', $record)),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

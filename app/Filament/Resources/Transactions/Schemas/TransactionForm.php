@@ -8,6 +8,7 @@ use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
@@ -44,6 +45,7 @@ class TransactionForm
                             ->required()
                             ->native(false),
                     ])->columns(2),
+
                 Section::make('Info Customer')
                     ->schema([
                         Select::make('customer_id')
@@ -57,6 +59,34 @@ class TransactionForm
                             ->preload()
                             ->required()
                             ->reactive()
+                            ->createOptionForm([
+                                TextInput::make('name')
+                                    ->label('Nama Customer')
+                                    ->required(),
+
+                                TextInput::make('phone')
+                                    ->label('No. HP'),
+
+                                TextInput::make('email')
+                                    ->label('Email')
+                                    ->email(),
+
+                                TextInput::make('address')
+                                    ->label('Alamat'),
+
+                                TextInput::make('city')
+                                    ->label('Kota'),
+
+                                TextInput::make('province')
+                                    ->label('Provinsi'),
+
+                                TextInput::make('postal_code')
+                                    ->label('Kode Pos'),
+
+                                Toggle::make('is_active')
+                                    ->label('Aktif')
+                                    ->default(true),
+                            ])
                             ->afterStateUpdated(function ($state, callable $set) {
                                 $customer = \App\Models\Customer::find($state);
 
@@ -75,7 +105,7 @@ class TransactionForm
                                     $customer->postal_code,
                                 ])->filter()->implode(', ');
 
-                                $set('customer_alamat', $alamat);
+                                $set('customer_address', $alamat);
                             }),
 
                         TextInput::make('customer_name')
@@ -93,7 +123,7 @@ class TransactionForm
                             ->readOnly()
                             ->dehydrated(),
 
-                        TextInput::make('customer_alamat')
+                        TextInput::make('customer_address')
                             ->label('Alamat')
                             ->readOnly()
                             ->columnSpanFull()
@@ -116,12 +146,15 @@ class TransactionForm
                                     ->options(Product::all()->pluck('name', 'id'))
                                     ->searchable()
                                     ->required()
-                                    ->reactive()
-                                    ->afterStateUpdated(function ($state, Set $set) {
+                                    ->live(onBlur: true)
+                                    ->afterStateUpdated(function ($state, Set $set, Get $get) {
                                         $product = Product::find($state);
                                         $set('price', $product?->price ?? 0);
                                         $set('quantity', 1);
                                         $set('subtotal', $product?->price ?? 0);
+
+                                        // Update total amount
+                                        self::updateTotalAmount($get, $set);
                                     }),
 
                                 TextInput::make('quantity')
@@ -129,9 +162,13 @@ class TransactionForm
                                     ->numeric()
                                     ->default(1)
                                     ->required()
-                                    ->reactive()
-                                    ->afterStateUpdated(fn (Get $get, Set $set) => $set('subtotal', $get('quantity') * $get('price'))
-                                    ),
+                                    ->live(onBlur: true)
+                                    ->afterStateUpdated(function (Get $get, Set $set) {
+                                        $set('subtotal', $get('quantity') * $get('price'));
+
+                                        // Update total amount
+                                        self::updateTotalAmount($get, $set);
+                                    }),
 
                                 TextInput::make('price')
                                     ->numeric()
@@ -144,13 +181,19 @@ class TransactionForm
                                     ->dehydrated(),
                             ])
                             ->columns(4)
-                            ->reactive()
+                            ->live()
                             ->afterStateUpdated(function (Get $get, Set $set) {
-                                $total = collect($get('items'))
-                                    ->sum(fn ($item) => $item['subtotal'] ?? 0);
-
-                                $set('total_amount', $total);
-                            }),
+                                self::updateTotalAmount($get, $set);
+                            })
+                            ->deleteAction(
+                                fn ($action) => $action->after(function (Get $get, Set $set) {
+                                    self::updateTotalAmount($get, $set);
+                                })
+                            )
+                            ->reorderableWithButtons()
+                            ->collapsible()
+                            ->itemLabel(fn (array $state): ?string => Product::find($state['product_id'])?->name ?? 'Produk baru'
+                            ),
                     ])->columnSpanFull(),
 
                 Section::make('Total')
@@ -165,6 +208,18 @@ class TransactionForm
                     ->columnSpanFull(),
 
             ]);
+    }
 
+    /**
+     * Update total amount dari semua items
+     */
+    protected static function updateTotalAmount(Get $get, Set $set): void
+    {
+        // Collect semua items dan hitung total
+        $total = collect($get('../../items'))
+            ->filter(fn ($item) => ! empty($item['subtotal']))
+            ->sum('subtotal');
+
+        $set('../../total_amount', $total);
     }
 }
